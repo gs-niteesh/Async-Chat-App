@@ -58,12 +58,12 @@ async def handle(reader, writer):
         if not user.connected():
             if msg.startswith('/join'):
                 channel = msg.split(' ')[1]
-                channel = channel[:-2]
+                channel = channel.strip('\r\n')
                 user.set_channel(channel)
                 broadcast_in_channel(f'{user.name} connected to channel {channel}\n', user, channel)
             elif msg.startswith('/name'):
                 channel = msg.split(' ')[1]
-                name = channel[:-2]
+                name = channel.strip('\r\n')
                 broadcast_in_channel(f'{user.name} renamed to {name}', user, user.channel)
             else:
                 writer.write('Connect to a channel first\n'.encode('ascii'))

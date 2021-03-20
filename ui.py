@@ -1,7 +1,22 @@
 import urwid
 import asyncio
 from color_selector import ColorSelector
-from client import connect_to_server, wait_for_data, send_msg_to_server
+
+reader = None
+writer = None
+connected = False
+
+async def send_msg_to_server(msg):
+    print ('send_msg_to_server')
+    global writer
+    writer.write(msg.encode())
+    await writer.drain()
+
+async def connect_to_server():
+    global reader, writer, connected
+    if not connected:
+        reader, writer = await asyncio.open_connection('localhost', 8080)
+        connected = True
 
 class UI:
     PALLETE = [
@@ -32,9 +47,19 @@ class UI:
         msg = [(self.color, user), ': ', org_msg]
         self.walker.append(urwid.Text(msg))
 
+    async def wait_for_data(self):
+        global reader
+        while True:
+            if reader is not None:
+                data = await reader.read(100)
+                print (data.decode())
+            else:
+                print ('reader is none')
+            await asyncio.sleep(0)
+
     async def run(self):
         await connect_to_server()
-        self.loop.create_task(wait_for_data())
+        self.loop.create_task(self.wait_for_data())
 
     def start(self):
         aloop = asyncio.get_event_loop()

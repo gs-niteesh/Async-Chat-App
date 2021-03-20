@@ -51,6 +51,8 @@ def create_connect_user(addr, writer):
     user = User(addr, writer)
     users.append(user)
     broadcast(f'{user.name} Connected\n')
+    msg = {'type': 'name', 'name': user.name}
+    user.writer.write(json.dumps(msg).encode())
     return user
 
 def disconnect_user(user):

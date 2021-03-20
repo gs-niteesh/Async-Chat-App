@@ -1,5 +1,6 @@
 import asyncio
 import random
+import json
 
 class User:
     def __init__(self, addr, writer=None):
@@ -19,17 +20,29 @@ class User:
     def connected(self):
         return self.channel != ''
 
+def send_event_msg(msg):
+    rmsg = {'type': 'event', 'msg': msg}
+    return json.dumps(rmsg)
+
+def send_user_msg(msg, user):
+    rmsg = {'type': 'msg', 'user': user.name, 'msg': msg}
+    return json.dumps(rmsg)
+
 users = []
 channels = {}
 
 def broadcast(msg):
+    msg = send_event_msg(msg)
     for user in users:
         user.writer.write(msg.encode())
 
-def broadcast_in_channel(msg, cuser, channel):
+def broadcast_in_channel(msg, cuser, channel, event = False):
+    if event:
+        msg = send_event_msg(msg)
     users = channels[channel]
-
     for user in users:
+        if not event:
+            msg = send_user_msg(msg, user)
         if user != cuser:
             writer = user.writer
             writer.write(msg.encode())
@@ -60,13 +73,15 @@ async def handle(reader, writer):
                 channel = msg.split(' ')[1]
                 channel = channel.strip('\r\n')
                 user.set_channel(channel)
-                broadcast_in_channel(f'{user.name} connected to channel {channel}\n', user, channel)
+                broadcast_in_channel(f'{user.name} connected to channel {channel}\n', user, channel, event=True)
             elif msg.startswith('/name'):
                 channel = msg.split(' ')[1]
                 name = channel.strip('\r\n')
-                broadcast_in_channel(f'{user.name} renamed to {name}', user, user.channel)
+                user.name = name
+                broadcast_event_in_channel(f'{user.name} renamed to {name}', user, user.channel, event=True)
             else:
-                writer.write('Connect to a channel first\n'.encode('ascii'))
+                msg = send_event_msg('Connect to a channel first\n')
+                writer.write(msg.encode('ascii'))
         else:
             #TODO: Broadcast message to all users in the same channel
             broadcast_in_channel(msg, user, channel)

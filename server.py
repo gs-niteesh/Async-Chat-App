@@ -31,21 +31,23 @@ def send_user_msg(msg, user):
 users = []
 channels = {}
 
-def broadcast(msg):
+async def broadcast(msg):
     msg = send_event_msg(msg)
     for user in users:
         user.writer.write(msg.encode())
+        await user.writer.drain()
 
-def broadcast_in_channel(msg, cuser, channel, event = False):
+async def broadcast_in_channel(msg, cuser, channel, event = False):
     if event:
-        msg = send_event_msg(msg)
+        smsg = send_event_msg(msg)
     users = channels[channel]
     for user in users:
         if not event:
-            msg = send_user_msg(msg, user)
+            smsg = send_user_msg(msg, cuser)
         if user != cuser:
             writer = user.writer
-            writer.write(msg.encode())
+            writer.write(smsg.encode())
+            await writer.drain()
 
 def create_connect_user(addr, writer):
     user = User(addr, writer)
@@ -61,7 +63,13 @@ def disconnect_user(user):
 
 async def handle(reader, writer):
     addr = writer.get_extra_info('peername')
-    user = create_connect_user(addr, writer)
+    # user = create_connect_user(addr, writer)
+    user = User(addr, writer)
+    users.append(user)
+#    await broadcast_in_channel(f'{user.name} Connected\n', user)
+    msg = {'type': 'name', 'name': user.name}
+    user.writer.write(json.dumps(msg).encode())
+    await user.writer.drain()
     while True:
         data = await reader.read(4096)
         if not data:
@@ -69,24 +77,26 @@ async def handle(reader, writer):
             writer.close()
             return
         msg = data.decode()
+        print (f'received ${data.decode()} from ${user.name}')
 
         if not user.connected():
             if msg.startswith('/join'):
                 channel = msg.split(' ')[1]
                 channel = channel.strip('\r\n')
                 user.set_channel(channel)
-                broadcast_in_channel(f'{user.name} connected to channel {channel}\n', user, channel, event=True)
+                await broadcast_in_channel(f'{user.name} connected to channel {channel}\n', user, channel, event=True)
             elif msg.startswith('/name'):
                 channel = msg.split(' ')[1]
                 name = channel.strip('\r\n')
                 user.name = name
-                broadcast_event_in_channel(f'{user.name} renamed to {name}', user, user.channel, event=True)
+                await broadcast_in_channel(f'{user.name} renamed to {name}', user, user.channel, event=True)
             else:
                 msg = send_event_msg('Connect to a channel first\n')
-                writer.write(msg.encode('ascii'))
+                writer.write(msg.encode())
         else:
             #TODO: Broadcast message to all users in the same channel
-            broadcast_in_channel(msg, user, channel)
+            print ('sending msg: ', msg)
+            await broadcast_in_channel(msg, user, channel)
         await writer.drain()
 
 async def main():

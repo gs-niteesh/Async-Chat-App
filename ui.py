@@ -27,7 +27,7 @@ async def send_msg_to_server(msg):
 async def connect_to_server():
     global reader, writer, connected
     if not connected:
-        reader, writer = await asyncio.open_connection('localhost', 8080)
+        reader, writer = await asyncio.open_connection('localhost', 4444)
         connected = True
 
 class UI:
@@ -47,7 +47,7 @@ class UI:
                                   urwid.Divider('-')])
         self.walker = urwid.SimpleListWalker(self.message)
         self.body = urwid.ListBox(self.walker)
-        self.footer = urwid.Edit('> ', multiline=True, allow_tab=True)
+        self.footer = urwid.Edit('> ')
         self.color = ColorSelector.get_color_attr()
 
         self.frame = urwid.Frame(body=self.body, header=self.header,
@@ -115,7 +115,7 @@ class UI:
                     try:
                         data = json.loads(msg)
                     except json.JSONDecodeError:
-                        logging.debug(msg)
+                        logging.debug(f'JSONDecodeError: {msg}')
                         data = {'type':'msg', 'user': 'anon', 'msg': 'Fix me'}
                     
                     # data = self.return_dict(msg)

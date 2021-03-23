@@ -112,6 +112,7 @@ class UI:
                     msg = data.decode()
                     # urwid.emit_signal(self, 'update_msg_list', self, data)
                     # print ('data: ', msg, type(msg))
+                    logging.debug('Original data received: ' + str(msg))
                     try:
                         data = json.loads(msg)
                     except json.JSONDecodeError:
@@ -125,10 +126,13 @@ class UI:
                     name = data.get('name')
                     user = data.get('user')
                     if typ == None:
-                        logging.debug('Data event type is none' + data)
+                        logging.debug('Data event type is none' + str(data))
+                        # NOTE: Uncomment below line to also show these msg
+                        # in the list box
+                        # self.walker.append(urwid.Text(str(data)))
                         continue
                     if typ == 'event':
-                         self.walker.append(urwid.Text(msg))
+                        self.walker.append(urwid.Text(msg))
                     elif typ == 'name':
                         self.user_name = name
                         self.walker.append(urwid.Text('Name: ' + self.user_name))

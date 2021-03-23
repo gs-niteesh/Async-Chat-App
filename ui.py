@@ -127,9 +127,9 @@ class UI:
                     user = data.get('user')
                     if typ == None:
                         logging.debug('Data event type is none' + str(data))
-                        # NOTE: Uncomment below line to also show these msg
+                        # NOTE: Comment below line to not show these invalid msg
                         # in the list box
-                        # self.walker.append(urwid.Text(str(data)))
+                        self.walker.append(urwid.Text(str(data)))
                         continue
                     if typ == 'event':
                         self.walker.append(urwid.Text(msg))
